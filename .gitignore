@@ -5,6 +5,9 @@ __pycache__/
 # Artefactos de build
 *.zip
 
+# Fotogramas intermedios del render de documentación
+/docs/img/frames/
+
 # Versiones antiguas de un solo archivo (no forman parte del paquete)
 /PolyCutter-*.py
 /gemini-code-*.py

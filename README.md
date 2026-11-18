@@ -6,6 +6,12 @@
 
 Addon de Blender para **separar extremidades o piezas de una malla** dibujando un lazo editable alrededor. El lazo se puede ajustar punto a punto antes de aplicar el corte, y el resultado son **dos piezas cerradas** (sin agujeros).
 
+![PolyCutter: lazo abierto, lazo cerrado y piezas separadas](docs/img/hero.png)
+
+![Animación del proceso](docs/img/demo.gif)
+
+<sub>Ilustración generada con Blender (render 3D del proceso; no es una captura de la interfaz).</sub>
+
 ## Características
 
 - **Lazo editable**: arrastra cualquier punto para recolocarlo sobre la superficie; inserta o borra puntos.
