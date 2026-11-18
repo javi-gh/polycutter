@@ -6,14 +6,13 @@ param(
     [string]$Visibility = "public"
 )
 
-$ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
 function Find-Tool($name, $fallback) {
     $cmd = Get-Command $name -ErrorAction SilentlyContinue
     if ($cmd) { return $cmd.Source }
     if (Test-Path $fallback) { return $fallback }
-    throw "No se encontro $name. Reinstala con winget: winget install $name"
+    throw "No se encontro $name. Instalalo con winget."
 }
 
 $git = Find-Tool "git" "C:\Program Files\Git\cmd\git.exe"
@@ -22,13 +21,12 @@ $gh = Find-Tool "gh" "C:\Program Files\GitHub CLI\gh.exe"
 Write-Host "== PolyCutter: publicacion en GitHub ==" -ForegroundColor Cyan
 
 # 1) Login en GitHub si hace falta
-& $gh auth status 2>$null | Out-Null
+& $gh auth status *> $null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Iniciando sesion en GitHub (sigue las instrucciones)..." -ForegroundColor Yellow
     & $gh auth login --hostname github.com --git-protocol https --web
     if ($LASTEXITCODE -ne 0) { throw "Login de GitHub cancelado o fallido" }
 }
-
 $login = (& $gh api user -q .login).Trim()
 Write-Host "Sesion: $login" -ForegroundColor Green
 
@@ -48,36 +46,33 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # 4) Repositorio remoto
-$desc = "Addon de Blender para separar extremidades con un lazo editable"
 $exists = $true
-& $gh repo view "$login/$Repo" 2>$null | Out-Null
+& $gh repo view "$login/$Repo" *> $null
 if ($LASTEXITCODE -ne 0) { $exists = $false }
 
 if (-not $exists) {
     & $gh repo create $Repo "--$Visibility" --source . --remote origin `
-        --description $desc --disable-wiki
+        --description "Addon de Blender para separar extremidades con un lazo editable" --disable-wiki
     if ($LASTEXITCODE -ne 0) { throw "No se pudo crear el repositorio $Repo" }
-    Write-Host "Repositorio creado: https://github.com/$login/$Repo" -ForegroundColor Green
+    Write-Host "Repositorio creado." -ForegroundColor Green
 } else {
-    $remote = (& $git remote get-url origin 2>$null)
-    if ($LASTEXITCODE -ne 0) {
+    $remotes = @(& $git remote)
+    if ($remotes -notcontains "origin") {
         & $git remote add origin "https://github.com/$login/$Repo.git"
     }
     Write-Host "Repositorio existente: https://github.com/$login/$Repo" -ForegroundColor Yellow
 }
 
-# 5) Subir rama y version
+# 5) Subir rama, topics y tag
 & $git push -u origin main
 if ($LASTEXITCODE -ne 0) { throw "No se pudo subir la rama main" }
 
-& $gh repo edit "$login/$Repo" --add-topic blender,blender-addon,mesh,cutter,boolean | Out-Null
+& $gh repo edit "$login/$Repo" --add-topic blender,blender-addon,mesh,cutter,boolean *> $null
 
-$tagExists = (& $git tag -l "v1.0.0")
-if (-not $tagExists) {
-    & $git tag "v1.0.0"
-    & $git push origin "v1.0.0"
-}
+$tags = @(& $git tag -l "v1.0.0")
+if ($tags -notcontains "v1.0.0") { & $git tag "v1.0.0" }
+& $git push origin "v1.0.0" *> $null
 
 Write-Host ""
 Write-Host "Listo: https://github.com/$login/$Repo" -ForegroundColor Cyan
-Write-Host "La release v1.0.0 se genera sola en Actions (pestana Actions/Releases)."
+Write-Host "La release v1.0.0 se genera sola en Actions (pestana Releases)."
