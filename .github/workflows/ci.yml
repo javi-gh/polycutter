@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Comprobar sintaxis
+        run: |
+          python - <<'PY'
+          import ast
+          import pathlib
+
+          files = sorted(pathlib.Path("PolyCutter").glob("*.py"))
+          files += [pathlib.Path("build.py"), pathlib.Path("run_smoke.py")]
+          for f in files:
+              ast.parse(f.read_text(encoding="utf-8"))
+              print("OK", f)
+          print(f"Sintaxis OK: {len(files)} archivos")
+          PY
+
+      - name: Generar zip
+        run: python build.py
+
+      - name: Verificar contenido del zip
+        run: |
+          python - <<'PY'
+          import pathlib
+          import zipfile
+
+          z = next(pathlib.Path(".").glob("PolyCutter-*.zip"))
+          names = zipfile.ZipFile(z).namelist()
+          assert "PolyCutter/__init__.py" in names, names
+          assert all("__pycache__" not in n for n in names), names
+          print(z.name, "->", len(names), "archivos")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PolyCutter-zip
+          path: PolyCutter-*.zip
